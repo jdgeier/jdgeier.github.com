@@ -1,0 +1,524 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Using perl and netdom to rejoin lots of machines to AD domain</title>
+    
+    <meta name="author" content="Jd Geier">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/assets/themes/alpha/css/bootstrap.css" rel="stylesheet">
+    <link href="/assets/themes/alpha/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="/assets/themes/alpha/css/docs.css" rel="stylesheet">
+    <link href="/assets/themes/alpha/js/google-code-prettify/prettify.css" rel="stylesheet">
+
+    <link href="http://alphageekz.com/atom.xml" rel="alternate" title="RSS" type="application/rss+xml" />
+     
+
+    <!-- Le fav and touch icons -->
+  <!-- Update these with your own images  -->
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+
+
+  </head>
+
+  <body>
+
+
+  <!-- Navbar
+    ================================================== -->
+  	<div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+
+          </a>
+          <a class="brand" href="/">Alpha Geekz</a>
+          <ul class="nav">
+            
+            
+            
+
+
+  
+    
+    	
+    	<li><a href="/categories.html">Categories</a></li>
+    	
+    
+  
+    
+  
+    
+    	
+    	<li><a href="/pages.html">Pages</a></li>
+    	
+    
+  
+    
+    	
+    	<li><a href="/tags.html">Tags</a></li>
+    	
+    
+  
+    
+    	
+    	<li><a href="/archive.html">Archive</a></li>
+    	
+    
+  
+    
+  
+    
+  
+
+
+
+          </ul>
+        </div>
+      </div>
+    </div>
+    </div>
+        <div class="container">
+<section id="grid-system">
+
+  <div class="row">
+    <div class="span8" data-original-title="">
+
+        
+<div class="page-header">
+  <h1>Using perl and netdom to rejoin lots of machines to AD domain <small></small></h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    <p>A few years back we had an incident where somehow the computers OU got deleted from the domain. Someone from our systems team was able to restore the OU from what I can only assume was an LDIF backup. However, although the machines may have been listed in the OU when any given user attempted to log in to thier computer they received an error stating that the machine was no longer on the domain. I wrote this script in order to do a massive rejoin of all computer objects from a list of machines from that OU.</p>
+
+<p><em>rejoin.pl</em></p>
+
+<pre class="prettyprint linenums">
+use Net::Ping;
+open (COMPS, 'thelist.txt');
+my @computers =<COMPS>;
+foreach(@computers) {
+    chomp(); if(/^#/) { next } pingit($_) };
+sub pingit(){
+ my $p = Net::Ping->new();
+ #domainUser must be able to join machines to the domain and be in the Administrator's Group on the machine
+ system("netdom remove $_ /domain:example.tld /userd:domUser /passwordd:domUserPass /usero:LocalAdmin /passwordo:LocalAdminPass /verbose") if $p->ping($_);
+ system("netdom join $_ /domain:example.tld /userd:domUser /passwordd:domUserPass /usero:LocalAdmin /passwordo:LocalAdminPass /reboot /verbose") if $p->ping($_);
+ system("echo $_ >> computers.txt") if $p->ping($_);}   
+</pre>
+
+
+<p></p>
+
+<p>It took me a few hours trying to get the syntax correct on the netdom command. Mainly because if a user had attempted to log in to a machine prior to the LDAP OU being restored from LDIF that machine would have lost its trust relationship with the domain and would require that the machine in question be manually rejoined to the network. Luckily there were only a few of those machines, but as most of the machines that I was working on when trying to get the correct netdom syntax were having a trust relationship error I ending up giving up. After I started to join several machines back by hand I noticed that most of them did not have that issue and I went back to attempting to get the correct netdom syntax. All in all it had about an 87% success rate accross the campus. Most of the machines that it failed on were because they were not turned on or were on the wireless network or off campus.</p>
+
+<p>In order to speed the process of getting all of the machines back on the domain we also had provided the help desk with a copy of the script that would join one machine at a time rather that the whole list of machines. It was a simple modification which I will not include here as if you have any knowledge of perl it should be obvious as to what changes need to be made. As a consquence of providing the script to the help desk it became nessicary to change the local admin password on all the machines as that was not information that help desk should generally have had. So I wrote another script, actually a combination of several scripts, to get the password changed for the local admin account on each of the staff computers.</p>
+
+<p><em>README</em></p>
+
+<pre class="prettyprint linenums">
+perl setup.pl
+It will ask for your password its is your standard domain password. 
+runme.bat
+its done.
+</pre>
+
+
+<p><em>FindMyDN.vbs</em></p>
+
+<pre class="prettyprint linenums">
+Set objADSysInfo = CreateObject("ADSystemInfo")
+wscript.echo objADSysInfo.UserName
+</pre>
+
+
+<p><em>passchange.vbs</em></p>
+
+<pre class="prettyprint linenums">
+strComputer = WScript.Arguments.Item(0)
+
+Set objUser = GetObject("WinNT://" & strComputer & "/LocalAdmin")
+objUser.SetPassword("NEWPASSWORD")
+</pre>
+
+
+<p><em>passchange.pl</em></p>
+
+<pre class="prettyprint linenums">
+use Net::Ping;
+use Cwd;
+use File::Basename;
+$dir = fastgetcwd;
+$tld = fileparse("$dir");
+
+system("echo \#Not Done > notdone.txt");
+open (COMPS, "$tld.txt");
+my @computers =<COMPS>;
+foreach(@computers) {
+    chomp(); if(/^#/) { next } pingitbitch($_) };
+sub pingitbitch(){
+ my $p = Net::Ping->new();
+ #system("cscript passchange.vbs $_") if $p->ping($_); #change password 
+ my $re='\(null\): (.*)\n';
+ my @outp = `cscript passchange.vbs $_ 2>&1` if $p->ping($_);
+ my $error;
+ foreach my $item (@outp) {
+      if($item =~ m/$re/is ) { $error = $1; last; }
+    }
+ system("echo $_ $error  >> error.txt") if $error;
+ system("echo $_ >> done.txt") if $p->ping($_); #appears to be successful
+ system("echo $_ >> notdone.txt") unless $p->ping($_);} #there was a problem here
+close (COMPS);
+system("cp notdone.txt $tld.txt");
+</pre>
+
+
+<p><em>setup.pl</em></p>
+
+<pre class="prettyprint linenums">
+#passchange2.pl
+# This script was written with the intent to allow for easier password changes for the local admin account
+#
+# If you have questions reguarding this script please contact JD Geier in the ITS department via email: 
+# jgeier@regis.edu or via my work extention @ x5090
+#
+# This script was writen for Regis University and may not work elsewhere without modification.
+# (c) 2009 Regis University, Jd Geier.
+
+use Net::LDAP;
+use Net::LDAP::Entry;
+use Getopt::Std;
+use Term::ReadKey;
+use vars qw/ %opt /;
+use strict;
+use warnings;
+
+my $mesg;
+my $ldap;
+my $username = `cscript /NoLogo FindMyDN.vbs`; $username =~ s/\cM\cJ//;
+my $password;
+my $base;
+my $port = 389;
+my $scheme = 'ldap';
+my $ip;
+my $version = 3;
+my $scope = 'one';
+my $filter = "(objectClass=organizationalUnit)";
+
+sub init()
+{
+ my $opt_string = 'hp:b';
+ getopts( "$opt_string", \%opt ) or usage();
+ usage() if defined $opt{h};
+}
+
+#
+# Message about this program and how to use it
+#
+
+sub usage()
+{
+    print STDERR << "EOF";
+This program uses Net::LDAP to get a list of computers in the Computers OU. After it gets the list of computers it will proceed to change password logs then placed into a CSV file located in the same place the script is run from. This script only works with the user that is logged in. If you wish to run the application as yourself please log the current user out and login using your own credentials. This is a limitation of the script due to the compexities of the CNs for AD.
+
+
+usage: $0 [-h] [-p Password] [-b OU] [-a] 
+ -h        : Displays this help message.
+ -p        : Password. If password is not defined the application will ask for you to enter it.
+ -b        : Run in specified OU
+ -a        : All OUs
+
+example: $0 [-h] [-p password] 
+EOF
+    exit;
+}
+
+init();
+
+sub getPassWord()
+{
+ print "Please enter your password: \n";
+ ReadMode('noecho');
+ chomp(my $passwordIn = <STDIN>);
+ ReadMode(0);
+ return $passwordIn;
+}
+
+$password =       $opt{p}        if     defined $opt{p};
+$password = getPassWord()        unless defined $opt{p};
+
+$ip = '255.255.255.255'; #replace with your IP address of the LDAP server
+ $ldap = Net::LDAP->new( 'ldapserverdomainname') or die('.Could not connect to LDAP server..');
+
+
+ $mesg = $ldap->    bind (               $username, 
+                    password          => $password);        
+
+$base= "OU=Computers,DC=exmaple,DC=tld"; #replace with the base ou that your computers are stored in. 
+
+print "$base \n";
+$mesg = $ldap->search( base => $base, 
+    
+                        filter => $filter);
+                        $mesg->code && die $mesg->error;
+my $max = $mesg->count;
+my @ous;
+for( my $i = 0 ; $i < $max ; $i++) {
+ my $entry = $mesg->entry ($i);
+ my @attrs = $entry->attributes;
+ my $ouname;
+ 
+ foreach my $attr (@attrs) {
+    if ($attr eq "name") { 
+        $ouname = $entry->get_value($attr);
+        push (@ous, $ouname) # unless $ouname eq "Computers"; you may need to use this as a filter uncomment and modify as needed
+    }
+  }
+}
+
+foreach my $ou (@ous) {
+    system("mkdir \"$ou\"");
+    my @computers;
+    $base = "OU=$ou,OU=Computers,DC=example,DC=tld"; #If you have multiple OUs
+    $filter = my $filter = "(objectClass=computer)";
+    $mesg = $ldap->search( base => $base, 
+    
+                        filter => $filter);
+                        $mesg->code && die $mesg->error;
+    my $max = $mesg->count;
+    for( my $i = 0 ; $i < $max ; $i++) {
+         my $entry = $mesg->entry ($i);
+         my @attrs = $entry->attributes;
+         my $compname;
+ 
+        foreach my $attr (@attrs) {
+            if ($attr eq "name") { 
+                $compname = $entry->get_value($attr);
+                push (@computers, $compname );
+            }
+          }
+        }
+    print "$base \n";
+    open FILE, ">", ".\\$ou\\$ou.txt" or die $!;
+    print FILE join "\n", @computers;
+    system("cp passchange\.pl .\\$ou\\");
+    system("cp passchange\.vbs .\\$ou\\");
+    system("echo cd \.\\$ou >> runme.bat");
+    system("echo perl passchange.pl >> runme.bat");
+    close FILE;
+}
+
+system("echo cd .. >> runme.bat");
+</pre>
+
+
+    <hr>
+    <div class="pagination">
+      <ul>
+      
+        <li class="prev"><a href="/cool-video-about-whole-vs-processed-food" title="Cool video about Whole vs Processed food">&larr; Previous</a></li>
+      
+        <li><a href="/archive.html">Archive</a></li>
+      
+        <li class="next"><a href="/uberman-day-3---4" title="Uberman Day 3 - 4">Next &rarr;</a></li>
+      
+      </ul>
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'alphageekz'; // required: replace example with your forum shortname
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <h4>Published</h4>
+    <div class="date"><span>12 February 2012</span></div>
+
+  
+    <h4>Tags</h4>
+    <ul class="tag_box">
+    
+    
+
+
+  
+     
+    	<li><a href="/tags.html#perl-ref">perl <span>1</span></a></li>
+     
+    	<li><a href="/tags.html#LDAP-ref">LDAP <span>1</span></a></li>
+     
+    	<li><a href="/tags.html#netdom-ref">netdom <span>1</span></a></li>
+    
+  
+
+
+
+    </ul>
+    
+  </div>
+</div>
+
+
+
+    </div>
+        
+    <div class="span4" data-original-title="">
+    	<div id="carrington-subscribe" class="widget">
+            <h2 class="widget-title">Subscribe</h2>
+            <a class="feed alignright" title="RSS 2.0 feed for posts" rel="alternate" href="http://alphageekz.com/atom.xml">
+              <img src="/assets/themes/alpha/img/rss-button.gif" alt="latest posts" title="latest posts">
+            </a>
+          </div>
+          <div id="carrington-about" class="widget">
+            <div class="about">
+              <h2 class="widget-title">About</h2>
+              <p>My name is Jd Geier, Anarcho-Transhumanist and megalomaniac extraordinaire.</p>
+              
+            </div>
+          </div>
+         <div id="secondary-sidebar">
+            <div class="widget">
+              <h2 class="widget-title">Recent Posts</h2>
+              <ul>
+                
+                <li>
+                  <a href="/uberman-day-3---4" title="Uberman Day 3 - 4" rel="bookmark">Uberman Day 3 - 4</a>
+                </li>
+                
+                <li>
+                  <a href="/using-perl-and-netdom-to-rejoin-lots-of-machines-to-ad-domain" title="Using perl and netdom to rejoin lots of machines to AD domain" rel="bookmark">Using perl and netdom to rejoin lots of machines to AD domain</a>
+                </li>
+                
+                <li>
+                  <a href="/cool-video-about-whole-vs-processed-food" title="Cool video about Whole vs Processed food" rel="bookmark">Cool video about Whole vs Processed food</a>
+                </li>
+                
+                <li>
+                  <a href="/uberman-day-2" title="Uberman day 2" rel="bookmark">Uberman day 2</a>
+                </li>
+                
+                <li>
+                  <a href="/pale-blue-dot" title="Pale Blue Dot" rel="bookmark">Pale Blue Dot</a>
+                </li>
+                
+                <li>
+                  <a href="/the-anti-science-movment" title="The Anti Science Movement" rel="bookmark">The Anti Science Movement</a>
+                </li>
+                
+                <li>
+                  <a href="/polyphasic-sleep-experiement" title="Polyphasic sleep experiment" rel="bookmark">Polyphasic sleep experiment</a>
+                </li>
+                
+              </ul>
+              <div class="clear"></div>
+
+    <h2 class="widget-title">Tag Cloud</h2>
+    
+            <span style="font-size: 75%">
+              <a href="/tags.html#LDAP-ref" title="1 post">LDAP</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#astronomy-ref" title="1 post">astronomy</a>
+            </span>
+          
+            <span style="font-size: 280%">
+              <a href="/tags.html#experiment-ref" title="4 posts">experiment</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#food-ref" title="1 post">food</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#netdom-ref" title="1 post">netdom</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#perl-ref" title="1 post">perl</a>
+            </span>
+          
+            <span style="font-size: 211%">
+              <a href="/tags.html#polyphasic sleep-ref" title="3 posts">polyphasic sleep</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#rant-ref" title="1 post">rant</a>
+            </span>
+          
+            <span style="font-size: 143%">
+              <a href="/tags.html#science-ref" title="2 posts">science</a>
+            </span>
+          
+            <span style="font-size: 211%">
+              <a href="/tags.html#uberman-ref" title="3 posts">uberman</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#video-ref" title="1 post">video</a>
+            </span>
+          
+
+
+
+    </div> <!-- /container -->
+    <script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+    <script src="/assets/themes/alpha/js/jquery.js"></script>
+    <script src="/assets/themes/alpha/js/google-code-prettify/prettify.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-transition.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-alert.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-modal.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-dropdown.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-scrollspy.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-tab.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-tooltip.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-popover.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-button.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-collapse.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-carousel.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-typeahead.js"></script>
+    <script src="/assets/themes/alpha/js/application.js"></script>
+    <script type="text/javascript">
+    
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try{ 
+var pageTracker = _gat._getTracker("UA-28706837-1");
+pageTracker._trackPageview();
+} catch(err) {} 
+</script>
+  </body>
+</html>
+

@@ -1,0 +1,10 @@
+---
+layout: post
+title: "The Anti Science Movement"
+category: ["science"]
+tags: ["science", "rant"]
+date: 2012-02-12 01:00:00
+---
+{% include JB/setup %}
+
+I've recently noticed a trend where people who are scientifically illiterate have really started to attack science. It seems that hard facts that have mountains of evidence can be brushed off with nothing more than a simple anecdote. And, to my astonishment, it seems that upon hearing these trite pieces of gibberish, anyone in the surrounding vicinity will nod their heads in agreement. "Yeah, that makes sense I can understand where he's coming from." When did science become so insignificant that is can be brushed off as being "liberal bias". That's the really disturbing thing. Global Warming? Liberal bias. Evolution? Liberal bias. Germ Theory of Disease and vaccination? Liberal bias. I was having this argument with my grandfather the other day. I mentioned the University studies that show global warming is real and it is caused by people. He dismissed them off hand because Universities are liberal institutions of indoctrination. I told him that Science is not a liberal agenda. He gave me this look like I was an idiot. Just because the facts are inconvenient does not make them incorrect. If you are presented with fact contradictory to what your opinion is change your opinion. That's another problem I have, politicians are supposed to be these people of rigid beliefs, this is the party line and I stand on this side and I will never change because the other side is wrong and I will maintain this position regardless of any evidence contrary to said position because facts are wrong. No wonder this country is going to shit. I want my politician to change their minds, "Whats that? Oh I was wrong? Can you show me where I was wrong? Wow I guess I'll have to change my mind." 

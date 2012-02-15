@@ -1,0 +1,680 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Jd Geier's Blog</title>
+    
+    <meta name="author" content="Jd Geier">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/assets/themes/alpha/css/bootstrap.css" rel="stylesheet">
+    <link href="/assets/themes/alpha/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="/assets/themes/alpha/css/docs.css" rel="stylesheet">
+    <link href="/assets/themes/alpha/js/google-code-prettify/prettify.css" rel="stylesheet">
+
+    <link href="http://alphageekz.com/atom.xml" rel="alternate" title="RSS" type="application/rss+xml" />
+     
+
+    <!-- Le fav and touch icons -->
+  <!-- Update these with your own images  -->
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+
+
+  </head>
+
+  <body>
+
+
+  <!-- Navbar
+    ================================================== -->
+  	<div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+
+          </a>
+          <a class="brand" href="/">Alpha Geekz</a>
+          <ul class="nav">
+            
+            
+            
+
+
+  
+    
+    	
+    	<li><a href="/categories.html">Categories</a></li>
+    	
+    
+  
+    
+  
+    
+    	
+    	<li><a href="/pages.html">Pages</a></li>
+    	
+    
+  
+    
+    	
+    	<li><a href="/tags.html">Tags</a></li>
+    	
+    
+  
+    
+    	
+    	<li><a href="/archive.html">Archive</a></li>
+    	
+    
+  
+    
+  
+    
+  
+
+
+
+          </ul>
+        </div>
+      </div>
+    </div>
+    </div>
+        <div class="container">
+<section id="grid-system">
+
+  <div class="row">
+    <div class="span8" data-original-title="">
+
+        <ul class="posts">
+  
+<div class="full">
+    <h1 class="entry-title">
+      <a href="/uberman-day-3---4" title="Uberman Day 3 - 4" rel="bookmark">Uberman Day 3 - 4</a>
+    </h1>
+    <div class="entry-content full-content">
+      <p>I didn't blog yesterday mainly because I fucked up on my sleep schedule. I went to take my 12:30am "nap" and didn't wake until 5:30am. I was disappointed to say the least but I feel that I learned an important lesson. I debated whether I should continue or not and decided that I should keep going. I really need to work on distracting myself. That seems odd I know but it seems to be real important during the adjustment phase. I still have trouble sleeping at 12:00pm and 5:00pm but I'm starting to adjust I think. Its also very important that when the 30 minute nap is over that immediately get up, if I do not I'll fall back asleep. The sleep deprivation seems to be getting the best of me at times. My thoughts are incongruous but that is to be expected. Hopefully when the adjustment period is over I won't feel so bad.</p>
+
+      <div class="clear"></div>
+    </div>
+    <p class="alt-font tight">
+      Posted in&nbsp;
+      
+      <a href="/categories/science" title="science" rel="category tag">science</a>
+      
+    </p>
+    <p class="comments-link">
+      <a href='/uberman-day-3---4#disqus_thread'>Comments</a>
+    </p>
+    <p class="by-line">
+      <span class="date full-date">
+        <abbr class="published" title="Tue Feb 14 11:19:00 -0700 2012">14 Feb 2012</abbr>
+      </span>
+    </p>
+    <div class="clear"></div>
+  </div>
+  <div class="rule"><hr/></div>
+  
+<div class="full">
+    <h1 class="entry-title">
+      <a href="/using-perl-and-netdom-to-rejoin-lots-of-machines-to-ad-domain" title="Using perl and netdom to rejoin lots of machines to AD domain" rel="bookmark">Using perl and netdom to rejoin lots of machines to AD domain</a>
+    </h1>
+    <div class="entry-content full-content">
+      <p>A few years back we had an incident where somehow the computers OU got deleted from the domain. Someone from our systems team was able to restore the OU from what I can only assume was an LDIF backup. However, although the machines may have been listed in the OU when any given user attempted to log in to thier computer they received an error stating that the machine was no longer on the domain. I wrote this script in order to do a massive rejoin of all computer objects from a list of machines from that OU.</p>
+
+<p><em>rejoin.pl</em></p>
+
+<pre class="prettyprint linenums">
+use Net::Ping;
+open (COMPS, 'thelist.txt');
+my @computers =<COMPS>;
+foreach(@computers) {
+    chomp(); if(/^#/) { next } pingit($_) };
+sub pingit(){
+ my $p = Net::Ping->new();
+ #domainUser must be able to join machines to the domain and be in the Administrator's Group on the machine
+ system("netdom remove $_ /domain:example.tld /userd:domUser /passwordd:domUserPass /usero:LocalAdmin /passwordo:LocalAdminPass /verbose") if $p->ping($_);
+ system("netdom join $_ /domain:example.tld /userd:domUser /passwordd:domUserPass /usero:LocalAdmin /passwordo:LocalAdminPass /reboot /verbose") if $p->ping($_);
+ system("echo $_ >> computers.txt") if $p->ping($_);}   
+</pre>
+
+
+<p></p>
+
+<p>It took me a few hours trying to get the syntax correct on the netdom command. Mainly because if a user had attempted to log in to a machine prior to the LDAP OU being restored from LDIF that machine would have lost its trust relationship with the domain and would require that the machine in question be manually rejoined to the network. Luckily there were only a few of those machines, but as most of the machines that I was working on when trying to get the correct netdom syntax were having a trust relationship error I ending up giving up. After I started to join several machines back by hand I noticed that most of them did not have that issue and I went back to attempting to get the correct netdom syntax. All in all it had about an 87% success rate accross the campus. Most of the machines that it failed on were because they were not turned on or were on the wireless network or off campus.</p>
+
+<p>In order to speed the process of getting all of the machines back on the domain we also had provided the help desk with a copy of the script that would join one machine at a time rather that the whole list of machines. It was a simple modification which I will not include here as if you have any knowledge of perl it should be obvious as to what changes need to be made. As a consquence of providing the script to the help desk it became nessicary to change the local admin password on all the machines as that was not information that help desk should generally have had. So I wrote another script, actually a combination of several scripts, to get the password changed for the local admin account on each of the staff computers.</p>
+
+<p><em>README</em></p>
+
+<pre class="prettyprint linenums">
+perl setup.pl
+It will ask for your password its is your standard domain password. 
+runme.bat
+its done.
+</pre>
+
+
+<p><em>FindMyDN.vbs</em></p>
+
+<pre class="prettyprint linenums">
+Set objADSysInfo = CreateObject("ADSystemInfo")
+wscript.echo objADSysInfo.UserName
+</pre>
+
+
+<p><em>passchange.vbs</em></p>
+
+<pre class="prettyprint linenums">
+strComputer = WScript.Arguments.Item(0)
+
+Set objUser = GetObject("WinNT://" & strComputer & "/LocalAdmin")
+objUser.SetPassword("NEWPASSWORD")
+</pre>
+
+
+<p><em>passchange.pl</em></p>
+
+<pre class="prettyprint linenums">
+use Net::Ping;
+use Cwd;
+use File::Basename;
+$dir = fastgetcwd;
+$tld = fileparse("$dir");
+
+system("echo \#Not Done > notdone.txt");
+open (COMPS, "$tld.txt");
+my @computers =<COMPS>;
+foreach(@computers) {
+    chomp(); if(/^#/) { next } pingitbitch($_) };
+sub pingitbitch(){
+ my $p = Net::Ping->new();
+ #system("cscript passchange.vbs $_") if $p->ping($_); #change password 
+ my $re='\(null\): (.*)\n';
+ my @outp = `cscript passchange.vbs $_ 2>&1` if $p->ping($_);
+ my $error;
+ foreach my $item (@outp) {
+      if($item =~ m/$re/is ) { $error = $1; last; }
+    }
+ system("echo $_ $error  >> error.txt") if $error;
+ system("echo $_ >> done.txt") if $p->ping($_); #appears to be successful
+ system("echo $_ >> notdone.txt") unless $p->ping($_);} #there was a problem here
+close (COMPS);
+system("cp notdone.txt $tld.txt");
+</pre>
+
+
+<p><em>setup.pl</em></p>
+
+<pre class="prettyprint linenums">
+#passchange2.pl
+# This script was written with the intent to allow for easier password changes for the local admin account
+#
+# If you have questions reguarding this script please contact JD Geier in the ITS department via email: 
+# jgeier@regis.edu or via my work extention @ x5090
+#
+# This script was writen for Regis University and may not work elsewhere without modification.
+# (c) 2009 Regis University, Jd Geier.
+
+use Net::LDAP;
+use Net::LDAP::Entry;
+use Getopt::Std;
+use Term::ReadKey;
+use vars qw/ %opt /;
+use strict;
+use warnings;
+
+my $mesg;
+my $ldap;
+my $username = `cscript /NoLogo FindMyDN.vbs`; $username =~ s/\cM\cJ//;
+my $password;
+my $base;
+my $port = 389;
+my $scheme = 'ldap';
+my $ip;
+my $version = 3;
+my $scope = 'one';
+my $filter = "(objectClass=organizationalUnit)";
+
+sub init()
+{
+ my $opt_string = 'hp:b';
+ getopts( "$opt_string", \%opt ) or usage();
+ usage() if defined $opt{h};
+}
+
+#
+# Message about this program and how to use it
+#
+
+sub usage()
+{
+    print STDERR << "EOF";
+This program uses Net::LDAP to get a list of computers in the Computers OU. After it gets the list of computers it will proceed to change password logs then placed into a CSV file located in the same place the script is run from. This script only works with the user that is logged in. If you wish to run the application as yourself please log the current user out and login using your own credentials. This is a limitation of the script due to the compexities of the CNs for AD.
+
+
+usage: $0 [-h] [-p Password] [-b OU] [-a] 
+ -h        : Displays this help message.
+ -p        : Password. If password is not defined the application will ask for you to enter it.
+ -b        : Run in specified OU
+ -a        : All OUs
+
+example: $0 [-h] [-p password] 
+EOF
+    exit;
+}
+
+init();
+
+sub getPassWord()
+{
+ print "Please enter your password: \n";
+ ReadMode('noecho');
+ chomp(my $passwordIn = <STDIN>);
+ ReadMode(0);
+ return $passwordIn;
+}
+
+$password =       $opt{p}        if     defined $opt{p};
+$password = getPassWord()        unless defined $opt{p};
+
+$ip = '255.255.255.255'; #replace with your IP address of the LDAP server
+ $ldap = Net::LDAP->new( 'ldapserverdomainname') or die('.Could not connect to LDAP server..');
+
+
+ $mesg = $ldap->    bind (               $username, 
+                    password          => $password);        
+
+$base= "OU=Computers,DC=exmaple,DC=tld"; #replace with the base ou that your computers are stored in. 
+
+print "$base \n";
+$mesg = $ldap->search( base => $base, 
+    
+                        filter => $filter);
+                        $mesg->code && die $mesg->error;
+my $max = $mesg->count;
+my @ous;
+for( my $i = 0 ; $i < $max ; $i++) {
+ my $entry = $mesg->entry ($i);
+ my @attrs = $entry->attributes;
+ my $ouname;
+ 
+ foreach my $attr (@attrs) {
+    if ($attr eq "name") { 
+        $ouname = $entry->get_value($attr);
+        push (@ous, $ouname) # unless $ouname eq "Computers"; you may need to use this as a filter uncomment and modify as needed
+    }
+  }
+}
+
+foreach my $ou (@ous) {
+    system("mkdir \"$ou\"");
+    my @computers;
+    $base = "OU=$ou,OU=Computers,DC=example,DC=tld"; #If you have multiple OUs
+    $filter = my $filter = "(objectClass=computer)";
+    $mesg = $ldap->search( base => $base, 
+    
+                        filter => $filter);
+                        $mesg->code && die $mesg->error;
+    my $max = $mesg->count;
+    for( my $i = 0 ; $i < $max ; $i++) {
+         my $entry = $mesg->entry ($i);
+         my @attrs = $entry->attributes;
+         my $compname;
+ 
+        foreach my $attr (@attrs) {
+            if ($attr eq "name") { 
+                $compname = $entry->get_value($attr);
+                push (@computers, $compname );
+            }
+          }
+        }
+    print "$base \n";
+    open FILE, ">", ".\\$ou\\$ou.txt" or die $!;
+    print FILE join "\n", @computers;
+    system("cp passchange\.pl .\\$ou\\");
+    system("cp passchange\.vbs .\\$ou\\");
+    system("echo cd \.\\$ou >> runme.bat");
+    system("echo perl passchange.pl >> runme.bat");
+    close FILE;
+}
+
+system("echo cd .. >> runme.bat");
+</pre>
+
+
+      <div class="clear"></div>
+    </div>
+    <p class="alt-font tight">
+      Posted in&nbsp;
+      
+      <a href="/categories/perl" title="perl" rel="category tag">perl</a>
+      
+    </p>
+    <p class="comments-link">
+      <a href='/using-perl-and-netdom-to-rejoin-lots-of-machines-to-ad-domain#disqus_thread'>Comments</a>
+    </p>
+    <p class="by-line">
+      <span class="date full-date">
+        <abbr class="published" title="Sun Feb 12 16:41:00 -0700 2012">12 Feb 2012</abbr>
+      </span>
+    </p>
+    <div class="clear"></div>
+  </div>
+  <div class="rule"><hr/></div>
+  
+<div class="full">
+    <h1 class="entry-title">
+      <a href="/cool-video-about-whole-vs-processed-food" title="Cool video about Whole vs Processed food" rel="bookmark">Cool video about Whole vs Processed food</a>
+    </h1>
+    <div class="entry-content full-content">
+      <p>The following video depicts the difference between whole and processed food. They use an M2A camera which shows the actuall process of digestion as is occurs.</p>
+
+<iframe width="560" height="315" src="http://www.youtube.com/embed/zi_DaJKsCLo?wmode=transparent" frameborder="0" allowfullscreen></iframe>
+
+
+      <div class="clear"></div>
+    </div>
+    <p class="alt-font tight">
+      Posted in&nbsp;
+      
+      <a href="/categories/science" title="science" rel="category tag">science</a>
+      
+    </p>
+    <p class="comments-link">
+      <a href='/cool-video-about-whole-vs-processed-food#disqus_thread'>Comments</a>
+    </p>
+    <p class="by-line">
+      <span class="date full-date">
+        <abbr class="published" title="Sun Feb 12 09:59:00 -0700 2012">12 Feb 2012</abbr>
+      </span>
+    </p>
+    <div class="clear"></div>
+  </div>
+  <div class="rule"><hr/></div>
+  
+<div class="full">
+    <h1 class="entry-title">
+      <a href="/uberman-day-2" title="Uberman day 2" rel="bookmark">Uberman day 2</a>
+    </h1>
+    <div class="entry-content full-content">
+      <p>Yesterday was a little difficult to adjust to. Waking up tired is a real pain in the ass but the worst part is waiting for your next rest period. While adapting to this sleep cycle I have found it is required that you don't think about the next sleep period. Either find a diversion or go insane. I've found several effective diversions at the moment, namely video games, and updating this blog. I reactivated my Eve Online account as I felt it was safer than reactivating my WoW account. I never was really addicted to Eve that same way I was with WoW, and I find the game a welcome distraction while waiting for my alarm to ring off my next napping period.</p>
+
+<p>Oddly enough this morning I feel great. However, I must admit that I have cheated a bit. Rather than do 30 minute naps off the bat I decided that to adjust to the new sleep cycle it would be best to do 1 hour rests. I think I have adapted well the first day mainly because of this. The next challenge will be cutting those rest periods down to 45m and then 30m and then 20m durations. I'm certainly not out of the woods yet. Although I do feel more optimistic after today that I will be able to successfully adapt to this new sleep schedule.</p>
+
+      <div class="clear"></div>
+    </div>
+    <p class="alt-font tight">
+      Posted in&nbsp;
+      
+      <a href="/categories/science" title="science" rel="category tag">science</a>
+      
+    </p>
+    <p class="comments-link">
+      <a href='/uberman-day-2#disqus_thread'>Comments</a>
+    </p>
+    <p class="by-line">
+      <span class="date full-date">
+        <abbr class="published" title="Sun Feb 12 09:31:00 -0700 2012">12 Feb 2012</abbr>
+      </span>
+    </p>
+    <div class="clear"></div>
+  </div>
+  <div class="rule"><hr/></div>
+  
+<div class="full">
+    <h1 class="entry-title">
+      <a href="/pale-blue-dot" title="Pale Blue Dot" rel="bookmark">Pale Blue Dot</a>
+    </h1>
+    <div class="entry-content full-content">
+      <p>Carl Sagan is one of my all time heroes. Recently astronauts on the ISS have been filming time-lapse videos of the earth as it passes underneath.</p>
+
+<iframe width="560" height="315" src="http://www.youtube.com/embed/ZGaQXx5lDWo?wmode=transparent" frameborder="0">
+</iframe>
+
+
+<p>I find these videos to be exciting and beautiful</p>
+
+      <div class="clear"></div>
+    </div>
+    <p class="alt-font tight">
+      Posted in&nbsp;
+      
+      <a href="/categories/science" title="science" rel="category tag">science</a>
+      
+    </p>
+    <p class="comments-link">
+      <a href='/pale-blue-dot#disqus_thread'>Comments</a>
+    </p>
+    <p class="by-line">
+      <span class="date full-date">
+        <abbr class="published" title="Sun Feb 12 01:01:01 -0700 2012">12 Feb 2012</abbr>
+      </span>
+    </p>
+    <div class="clear"></div>
+  </div>
+  <div class="rule"><hr/></div>
+  
+<div class="full">
+    <h1 class="entry-title">
+      <a href="/the-anti-science-movment" title="The Anti Science Movement" rel="bookmark">The Anti Science Movement</a>
+    </h1>
+    <div class="entry-content full-content">
+      <p>I've recently noticed a trend where people who are scientifically illiterate have really started to attack science. It seems that hard facts that have mountains of evidence can be brushed off with nothing more than a simple anecdote. And, to my astonishment, it seems that upon hearing these trite pieces of gibberish, anyone in the surrounding vicinity will nod their heads in agreement. "Yeah, that makes sense I can understand where he's coming from." When did science become so insignificant that is can be brushed off as being "liberal bias". That's the really disturbing thing. Global Warming? Liberal bias. Evolution? Liberal bias. Germ Theory of Disease and vaccination? Liberal bias. I was having this argument with my grandfather the other day. I mentioned the University studies that show global warming is real and it is caused by people. He dismissed them off hand because Universities are liberal institutions of indoctrination. I told him that Science is not a liberal agenda. He gave me this look like I was an idiot. Just because the facts are inconvenient does not make them incorrect. If you are presented with fact contradictory to what your opinion is change your opinion. That's another problem I have, politicians are supposed to be these people of rigid beliefs, this is the party line and I stand on this side and I will never change because the other side is wrong and I will maintain this position regardless of any evidence contrary to said position because facts are wrong. No wonder this country is going to shit. I want my politician to change their minds, "Whats that? Oh I was wrong? Can you show me where I was wrong? Wow I guess I'll have to change my mind."</p>
+
+      <div class="clear"></div>
+    </div>
+    <p class="alt-font tight">
+      Posted in&nbsp;
+      
+      <a href="/categories/science" title="science" rel="category tag">science</a>
+      
+    </p>
+    <p class="comments-link">
+      <a href='/the-anti-science-movment#disqus_thread'>Comments</a>
+    </p>
+    <p class="by-line">
+      <span class="date full-date">
+        <abbr class="published" title="Sun Feb 12 01:00:00 -0700 2012">12 Feb 2012</abbr>
+      </span>
+    </p>
+    <div class="clear"></div>
+  </div>
+  <div class="rule"><hr/></div>
+  
+<div class="full">
+    <h1 class="entry-title">
+      <a href="/polyphasic-sleep-experiement" title="Polyphasic sleep experiment" rel="bookmark">Polyphasic sleep experiment</a>
+    </h1>
+    <div class="entry-content full-content">
+      <p>Today will be my first test of the uberman sleep schedule. I've read so much about it and the idea intruiges me. My sleep schedule will be as follows:</p>
+
+<pre class="prettyprint">
+First nap   12:30am - 1:00am
+Second nap   4:00am - 4:30am
+Third nap    7:30am - 8:00am
+Fourth nap  12:00pm - 12:30pm
+Fifth nap    5:00pm - 5:30pm
+Sixth nap    9:00pm - 9:30pm
+</pre>
+
+
+<p></p>
+
+<p>I'll start with 30 minute naps during the initial adjustment period and switch to 20 minute naps later. I've got my phone setup to use as an alarm. Last night in order to test the efficacy of the device I had the alarm set to go off every 30 minutes and it appears to work well enough for my purposes so long as I am able to convince myself to wake up as required when it does go off. I know this will be a pain in the ass to adjust too. In order to assist with the adjustment period I've purchased several video games to fixate on in between naps. My diet will also require adjustment as my metabolism adapts to the extended periods of being awake.</p>
+
+      <div class="clear"></div>
+    </div>
+    <p class="alt-font tight">
+      Posted in&nbsp;
+      
+      <a href="/categories/science" title="science" rel="category tag">science</a>
+      
+    </p>
+    <p class="comments-link">
+      <a href='/polyphasic-sleep-experiement#disqus_thread'>Comments</a>
+    </p>
+    <p class="by-line">
+      <span class="date full-date">
+        <abbr class="published" title="Sat Feb 11 00:00:00 -0700 2012">11 Feb 2012</abbr>
+      </span>
+    </p>
+    <div class="clear"></div>
+  </div>
+  <div class="rule"><hr/></div>
+  
+<div class="pagination">
+  <span class="previous">
+    
+  </span>
+  <span class="next">
+    
+  </span>
+</div>
+</ul>
+
+
+
+
+
+    </div>
+        
+    <div class="span4" data-original-title="">
+    	<div id="carrington-subscribe" class="widget">
+            <h2 class="widget-title">Subscribe</h2>
+            <a class="feed alignright" title="RSS 2.0 feed for posts" rel="alternate" href="http://alphageekz.com/atom.xml">
+              <img src="/assets/themes/alpha/img/rss-button.gif" alt="latest posts" title="latest posts">
+            </a>
+          </div>
+          <div id="carrington-about" class="widget">
+            <div class="about">
+              <h2 class="widget-title">About</h2>
+              <p>My name is Jd Geier, Anarcho-Transhumanist and megalomaniac extraordinaire.</p>
+              
+            </div>
+          </div>
+         <div id="secondary-sidebar">
+            <div class="widget">
+              <h2 class="widget-title">Recent Posts</h2>
+              <ul>
+                
+                <li>
+                  <a href="/uberman-day-3---4" title="Uberman Day 3 - 4" rel="bookmark">Uberman Day 3 - 4</a>
+                </li>
+                
+                <li>
+                  <a href="/using-perl-and-netdom-to-rejoin-lots-of-machines-to-ad-domain" title="Using perl and netdom to rejoin lots of machines to AD domain" rel="bookmark">Using perl and netdom to rejoin lots of machines to AD domain</a>
+                </li>
+                
+                <li>
+                  <a href="/cool-video-about-whole-vs-processed-food" title="Cool video about Whole vs Processed food" rel="bookmark">Cool video about Whole vs Processed food</a>
+                </li>
+                
+                <li>
+                  <a href="/uberman-day-2" title="Uberman day 2" rel="bookmark">Uberman day 2</a>
+                </li>
+                
+                <li>
+                  <a href="/pale-blue-dot" title="Pale Blue Dot" rel="bookmark">Pale Blue Dot</a>
+                </li>
+                
+                <li>
+                  <a href="/the-anti-science-movment" title="The Anti Science Movement" rel="bookmark">The Anti Science Movement</a>
+                </li>
+                
+                <li>
+                  <a href="/polyphasic-sleep-experiement" title="Polyphasic sleep experiment" rel="bookmark">Polyphasic sleep experiment</a>
+                </li>
+                
+              </ul>
+              <div class="clear"></div>
+
+    <h2 class="widget-title">Tag Cloud</h2>
+    
+            <span style="font-size: 75%">
+              <a href="/tags.html#LDAP-ref" title="1 post">LDAP</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#astronomy-ref" title="1 post">astronomy</a>
+            </span>
+          
+            <span style="font-size: 280%">
+              <a href="/tags.html#experiment-ref" title="4 posts">experiment</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#food-ref" title="1 post">food</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#netdom-ref" title="1 post">netdom</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#perl-ref" title="1 post">perl</a>
+            </span>
+          
+            <span style="font-size: 211%">
+              <a href="/tags.html#polyphasic sleep-ref" title="3 posts">polyphasic sleep</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#rant-ref" title="1 post">rant</a>
+            </span>
+          
+            <span style="font-size: 143%">
+              <a href="/tags.html#science-ref" title="2 posts">science</a>
+            </span>
+          
+            <span style="font-size: 211%">
+              <a href="/tags.html#uberman-ref" title="3 posts">uberman</a>
+            </span>
+          
+            <span style="font-size: 75%">
+              <a href="/tags.html#video-ref" title="1 post">video</a>
+            </span>
+          
+
+
+
+    </div> <!-- /container -->
+    <script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+    <script src="/assets/themes/alpha/js/jquery.js"></script>
+    <script src="/assets/themes/alpha/js/google-code-prettify/prettify.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-transition.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-alert.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-modal.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-dropdown.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-scrollspy.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-tab.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-tooltip.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-popover.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-button.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-collapse.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-carousel.js"></script>
+    <script src="/assets/themes/alpha/js/bootstrap-typeahead.js"></script>
+    <script src="/assets/themes/alpha/js/application.js"></script>
+    <script type="text/javascript">
+    
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try{ 
+var pageTracker = _gat._getTracker("UA-28706837-1");
+pageTracker._trackPageview();
+} catch(err) {} 
+</script>
+  </body>
+</html>
+
